@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.figure_factory as ff
-from mendeleev import element
+import mendeleev
 import numpy as np
 
+#fetch elements into a list once
+#calling element (i) everytime is too slow
+ALL_ELEMENTS = {e.atomic_number: e for e in mendeleev.get_all_elements()}
 #18 columns and 10 rows instead of  9 to account for the gap
 columns = 18
 rows = 10
@@ -24,13 +27,14 @@ blue_to_red = [[0, 'rgb(173, 216, 230)'], [1, 'rgb(255, 0, 0)']]
 def initialize_grid(initial_value):
     return [[initial_value for _ in range(columns)] for _ in range(rows)]
 #this method maps element to coordinates
+@st.cache_data
 def get_periodic_table_grid(columns, rows):
     #create empty grid of 18 colums per row
     grid = initialize_grid("")
     hover_text = initialize_grid("") # New hover grid
     #loop through each element int he library and populate the grid
     for i in range(1, 119):
-        el = element(i)
+        el = ALL_ELEMENTS[i]
         # Create a display string: "1\nH" (Atomic Number on top of Symbol)
         display_label = f"{el.atomic_number}<br><b>{el.symbol}</b>"
 
@@ -60,12 +64,14 @@ def get_periodic_table_grid(columns, rows):
 
     return grid, hover_text
 #populates the grid for the desired attribute/trend
+#caching in hopes of improving performance
+@st.cache_data
 def get_value_grid(attribute):
     #grid initalized with 0.0
     v_grid = initialize_grid(-1.0)
     #populate grid with actual values for selected attribute
     for i in range(1, 119):
-        el = element(i)
+        el = ALL_ELEMENTS[i]
 
         # Pull the specific value (e.g., el.en_pauling)
         val = getattr(el, attribute)
