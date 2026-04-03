@@ -1,6 +1,8 @@
 🧪 Interactive Periodic Table: Trends Heatmap
 An interactive data visualization tool designed for middle school and highschool science classrooms as well as chemistry enthusiasts. This app transforms the traditional static periodic table into a dynamic heatmap, allowing users to visualize different chemical properties across the periodic table.
 
+**[🔗 View the Live App Here](https://periodictabletrends.streamlit.app/)**
+
 🌟 Features
 Dynamic Heatmapping: Instantly visualize trends like Electronegativity, Ionization Energy, Atomic Mass, and Boiling Point.
 Real-World Data: Powered by the mendeleev Python library, providing accurate scientific data for all 118 elements.
