@@ -1,28 +1,38 @@
 import streamlit as st
 import pandas as pd
 import plotly.figure_factory as ff
-import mendeleev
 import numpy as np
+import json
 
 #fetch elements into a list once
 #calling element (i) everytime is too slow
-ALL_ELEMENTS = {e.atomic_number: e for e in mendeleev.get_all_elements()}
+# ALL_ELEMENTS = {e.atomic_number: e for e in mendeleev.get_all_elements()}
+ALL_ELEMENTS = {}
 #18 columns and 10 rows instead of  9 to account for the gap
 columns = 18
 rows = 10
 # mapping mendeleev attributes to the common property names
 TRENDS = {
-    "Electronegativity": "en_pauling",
+    "Electronegativity": "electronegativity",
     "Atomic Mass": "mass",
     "Atomic Radius": "atomic_radius",
-    "Ionization Energy": "ionenergies",
+    "Ionization Energy": "ionization_energy",
     "Melting Point": "melting_point",
     "Boiling Point": "boiling_point"
 }
 # Define a custom White to Red colorscale
 # 0 is the lowest value, 1 is the highest
 blue_to_red = [[0, 'rgb(173, 216, 230)'], [1, 'rgb(255, 0, 0)']]
-
+#get elements from json file
+def get_elements():
+    with open('periodic_table_.json', 'r') as f:
+        return json.load(f)
+#load elements
+ALL_ELEMENTS = get_elements()
+#fetch 1 element
+def get_element(atomic_num):
+    a_n_str = str(atomic_num)
+    return ALL_ELEMENTS.get(a_n_str)
 #initialize an 18 by 10 grid
 def initialize_grid(initial_value):
     return [[initial_value for _ in range(columns)] for _ in range(rows)]
@@ -32,25 +42,25 @@ def get_periodic_table_grid(columns, rows):
     #create empty grid of 18 colums per row
     grid = initialize_grid("")
     hover_text = initialize_grid("") # New hover grid
-    #loop through each element int he library and populate the grid
+    #loop through each element and populate the grid
     for i in range(1, 119):
-        el = ALL_ELEMENTS[i]
+        el = get_element(i)
         # Create a display string: "1\nH" (Atomic Number on top of Symbol)
-        display_label = f"{el.atomic_number}<br><b>{el.symbol}</b>"
+        display_label = f"{i}<br><b>{el.get('symbol')}</b>"
 
-        # Create a detailed hover string
+        #creating a detailed hover string
         hover_label = (
-            f"Atomic Number: {el.atomic_number}<br>"
-            f"Element: {el.name}<br>"
-            f"Atomic Mass: {round(el.mass, 2)}")
+            f"Atomic Number: {i}<br>"
+            f"Element: {el.get('name')}<br>"
+            f"Atomic Mass: {el.get('mass')}")
         # 1. Start with "fallback" coordinates to prevent errors
         r, c = 0, 0
 
         # 2. Only do math if the group exists (Elements 1-56, 72-88, 104-118)
-        if el.group is not None:
-            r = el.period - 1
+        if el.get('group_id') is not None:
+            r = el.get('period') - 1
             # Use .group_id to get the 1-18 number
-            c = el.group_id - 1
+            c = el.get('group_id') - 1
 
         # 3. Use your manual overrides for the "f-block" (Lanthanides/Actinides)
         if 57 <= i <= 71:
@@ -59,7 +69,7 @@ def get_periodic_table_grid(columns, rows):
             r, c = 8, (i - 89) + 2
 
         # 4. Place the symbol in the grid
-        grid[r][c] = el.symbol
+        grid[r][c] = el.get('symbol')
         hover_text[r][c] = hover_label
 
     return grid, hover_text
@@ -71,27 +81,30 @@ def get_value_grid(attribute):
     v_grid = initialize_grid(-1.0)
     #populate grid with actual values for selected attribute
     for i in range(1, 119):
-        el = ALL_ELEMENTS[i]
-
+        el = get_element(i)
+        if attribute in el:
+            val = el.get(attribute)
+        else:
+            val = None
         # Pull the specific value (e.g., el.en_pauling)
-        val = getattr(el, attribute)
+        # val = el.get(attribute, None)
         # Special handling for Ionization Energy (it returns a list, we want the 1st one)
-        if attribute == "ionenergies" and val is not None:
-            # just want 1st ionization energy, key of 1
-            if 1 in val:
-                val = val.get(1)
+        # if attribute == "ionenergies" and val is not null:
+        #     # just want 1st ionization energy, key of 1
+        #     if 1 in val:
+        #         val = val.get(1)
 
         # Clean up missing data (None) so the map doesn't crash
         if val is None or not isinstance(val, (int, float)):
-            if getattr(el, "mass")>0:
+            if el.get('mass') > 0:
                 val = 0.0
             else:
                 val = -1.0
 
         # Standard coordinate logic
         r, c = 0, 0
-        if el.group_id:
-            r, c = el.period - 1, el.group_id - 1
+        if el.get('group_id'):
+            r, c = el.get('period') - 1, el.get('group_id') - 1
         if 57 <= i <= 71:
             r, c = 7, (i - 57) + 2
         elif 89 <= i <= 103:
